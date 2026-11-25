@@ -157,15 +157,15 @@ BUILTINS = {
 }
 
 # ---------- VARIABLES ----------
-VAR = re.compile(r"\$(\?|\$|[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})")
+VAR = re.compile(r"\$(\?|\$|!|[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})")
 
 
 def expand_vars(s, st):
-    """Remplace $NOM, ${NOM}, $? et $$ (sauf entre quotes simples)."""
+    # Remplace $NOM, ${NOM}, $?, $$ et $! (sauf entre quotes simples)
     out, i, quote = [], 0, None
     while i < len(s):
         c = s[i]
-        if c in "'\"":
+        if c in ("'", '"'):
             if quote is None:
                 quote = c
             elif quote == c:
@@ -178,6 +178,8 @@ def expand_vars(s, st):
                     val = str(st.last_status)
                 elif name == "$":
                     val = str(os.getpid())
+                elif name == "!":
+                    val = str(st.last_bg_pid)
                 else:
                     val = st.vars.get(name, st.env.get(name, ""))
                 out.append(val)
