@@ -11,7 +11,11 @@ class ShellState:
     def __init__(self):
         self.env = dict(os.environ)   # variables exportées
         self.vars = {}                # variables locales
-        self.aliases = {}             # raccourcis
+        self.aliases = {
+            "list": "ls", "show": "cat", "copy": "cp", "move": "mv",
+            "del": "rm", "newdir": "mkdir", "newfile": "touch",
+        }
+        self.last_bg_pid = ""   # pour $!
         self.last_status = 0          # valeur de $?
 
 
@@ -135,22 +139,33 @@ def b_unalias(args, st):
     return rc
 
 
+def b_info(args, st):
+    print("Commandes : go, path, say, export, unset, env, alias, unalias, info, osinfo, quit")
+    print("Alias : list, show, copy, move, del, newdir, newfile")
+    return 0
+
+
+def b_osinfo(args, st):
+    print("Systèmes d'Exploitation -- UIR/ESIN")
+    return 0
+
 BUILTINS = {
-    "pwd": b_pwd, "echo": b_echo, "env": b_env, "cd": b_cd,
-    "export": b_export, "unset": b_unset, "exit": b_exit,
+    "path": b_pwd, "say": b_echo, "env": b_env, "go": b_cd,
+    "export": b_export, "unset": b_unset, "quit": b_exit,
     "alias": b_alias, "unalias": b_unalias,
+    "info": b_info, "osinfo": b_osinfo,
 }
 
 # ---------- VARIABLES ----------
-VAR = re.compile(r"\$(\?|\$|[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})")
+VAR = re.compile(r"\$(\?|\$|!|[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})")
 
 
 def expand_vars(s, st):
-    """Remplace $NOM, ${NOM}, $? et $$ (sauf entre quotes simples)."""
+    # Remplace $NOM, ${NOM}, $?, $$ et $! (sauf entre quotes simples)
     out, i, quote = [], 0, None
     while i < len(s):
         c = s[i]
-        if c in "'\"":
+        if c in ("'", '"'):
             if quote is None:
                 quote = c
             elif quote == c:
@@ -163,6 +178,8 @@ def expand_vars(s, st):
                     val = str(st.last_status)
                 elif name == "$":
                     val = str(os.getpid())
+                elif name == "!":
+                    val = str(st.last_bg_pid)
                 else:
                     val = st.vars.get(name, st.env.get(name, ""))
                 out.append(val)
