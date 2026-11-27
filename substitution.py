@@ -1,11 +1,3 @@
-
-"""
-substitution.py
-Partie 4 du projet OPSH
-Substitution de commandes, .opshrc,
-historique et complétion.
-"""
-
 import os
 import re
 import readline
